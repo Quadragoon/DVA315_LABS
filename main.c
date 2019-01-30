@@ -3,6 +3,7 @@
 #include <semaphore.h>
 
 #define MAX_SIZE 1024
+#define QUEUE_NAME "/Mailbox"
 
 void* helloWorld(int* count);
 void* helloMoon(int* count);
@@ -18,7 +19,7 @@ int main(int ac, char ** argv) {
     mqd_t mailbox;
     int connected = 0;
     while (!connected) {
-        connected = MQconnect(&mailbox, "/Mailbox");
+        connected = MQconnect(&mailbox, QUEUE_NAME);
         usleep(50);
     }
 
@@ -43,7 +44,7 @@ void* readText() {
 
     int success = 0;
     while (!success) {
-        success = MQcreate(&mailbox, "/Mailbox");
+        success = MQcreate(&mailbox, QUEUE_NAME);
     }
 
     void* textString = malloc(MAX_SIZE);
@@ -57,7 +58,9 @@ void* readText() {
             printf("%s\n", (char *) textString);
         }
         sem_post(&mutex);
-        if (strcmp(textString, "END") == 0)
+        if (strcmp(textString, "END") == 0) {
+            mq_unlink(QUEUE_NAME);
             pthread_exit(NULL);
+        }
     }
 }
