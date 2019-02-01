@@ -32,7 +32,7 @@ int MQcreate (mqd_t * mq, char * name)
 
 int MQconnect (mqd_t * mq, char * name)
 {
-    /*  Uses mq as reference pointer, so that you can 	reach the handle from anywhere */
+    /* Uses mq as reference pointer, so that you can reach the handle from anywhere */
     /* Connects to an existing mailslot for writing */
     /* Should return 1 on success and 0 on fail*/
 
@@ -52,10 +52,10 @@ int MQread (mqd_t * mq, void ** refBuffer)
     /* Read a msg from a mailslot, return nr */
     /* of successful bytes read            */
 
-    int retval = mq_receive(*mq, *refBuffer, MAX_SIZE, NULL);
+    ssize_t retval = mq_receive(*mq, *refBuffer, MAX_SIZE, NULL);
     if (retval >= 0) {
         //printf("MQread success, %d bytes read\n", retval);
-        return retval;
+        return (int)retval;
     }
     else
         return 0;
@@ -66,6 +66,8 @@ int MQwrite (mqd_t * mq, void * sendBuffer)
     /* Uses mq as reference pointer, so that you can reach the handle from anywhere */
     /* Write a msg to a mailslot, return nr */
     /* of successful bytes written */
+
+#ifndef ASSIGNMENT_B
     int length = 0;
     char* message = (char*)sendBuffer;
     while(message[length] != '\0') {
@@ -74,13 +76,25 @@ int MQwrite (mqd_t * mq, void * sendBuffer)
     length++;
 
     int retval;
-    retval = mq_send(*mq, sendBuffer, (int)sizeof(char) * length, 0);
+    retval = mq_send(*mq, sendBuffer, (size_t)sizeof(char) * length, 0);
     if (retval == 0) {
         //printf("MQwrite success, %d bytes written\n", (int)sizeof(char) * length);
         return (int)sizeof(char) * length;
     }
     else
         return 0;
+#endif
+
+#ifdef ASSIGNMENT_B
+    size_t msgSize = sizeof(planet_type);
+
+    int retval;
+    retval = mq_send(*mq, sendBuffer, msgSize, 0);
+    if (retval == 0) {
+        return (int)sizeof(planet_type);
+    } else
+        return 0;
+#endif
 }
 
 int MQclose(mqd_t * mq, char * name)
@@ -94,17 +108,4 @@ int MQclose(mqd_t * mq, char * name)
         return 1;
     else
         return 0;
-}
-
-int threadCreate (void * functionCall, int threadParam)
-{
-	/* Creates a thread running threadFunc */
-	/* Should return 1 on success and 0 on fail*/
-	/*int retval;
-	pthread_t thread;
-	retval = pthread_create(&thread, NULL, functionCall, (void*)&threadParam);
-	if (retval == 0)
-	    return 1;
-	else*/
-	    return 0;
 }

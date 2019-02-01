@@ -9,18 +9,11 @@
 #include <mqueue.h>
 #include <pthread.h>
 
-
-
 // Mailslot handling:
-extern int threadCreate (void * functionCall, int threadParam);
-
 extern int MQcreate (mqd_t * mq, char * name);
 extern int MQconnect (mqd_t * mq, char * name);
 extern int MQread (mqd_t * mq, void ** refBuffer);
 extern int MQwrite (mqd_t * mq, void * data);
-
-
-
 
 // Struct for planet data will be used in lab 2 and 3 !!!!!
 // Just ignore in lab1 or you can try to send it on your mailslot, 
@@ -37,5 +30,7 @@ typedef struct pt {
     int			life;		// Planet life
     char		pid[30];	// String containing ID of creating process
 } planet_type;
+
+#define ASSIGNMENT_B
 
 #endif /* WRAPPER_H */

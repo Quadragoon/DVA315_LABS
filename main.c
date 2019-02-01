@@ -25,6 +25,7 @@ int main(int ac, char ** argv) {
 
     sem_init(&mutex, 0, 1);
 
+#ifndef ASSIGNMENT_B
     char* textString = malloc(sizeof(char)*MAX_SIZE);
     while(1) {
         printf("Enter string: ");
@@ -37,6 +38,23 @@ int main(int ac, char ** argv) {
             pthread_exit(NULL);
         sleep(1);
     }
+#endif
+
+#ifdef ASSIGNMENT_B
+    char* textString = malloc(sizeof(char)*MAX_SIZE);
+    planet_type planetType;
+    while(1) {
+        printf("Enter name: ");
+        sem_wait(&mutex);
+        fgets(textString, 20, stdin);
+        textString[strlen(textString) - 1] = '\0';
+        strcpy(planetType.name, textString);
+        sem_post(&mutex);
+        if (strcmp(textString, "END") == 0)
+            pthread_exit(NULL);
+        sleep(1);
+    }
+#endif
 }
 
 void* readText() {
@@ -47,6 +65,7 @@ void* readText() {
         success = MQcreate(&mailbox, QUEUE_NAME);
     }
 
+#ifndef ASSIGNMENT_B
     void* textString = malloc(MAX_SIZE);
 
     while (1) {
@@ -63,4 +82,25 @@ void* readText() {
             pthread_exit(NULL);
         }
     }
+#endif
+
+#ifdef ASSIGNMENT_B
+    planet_type receivedPlanet;
+    planet_type* planetPointer = &receivedPlanet;
+
+    while (1) {
+        sleep(1);
+        sem_wait(&mutex);
+        if (!MQread(&mailbox, &planetPointer))
+            printf("Read failed: error %d, %s\n", errno, strerror(errno));
+        else {
+            printf("%s\n", (char *) receivedPlanet.name);
+        }
+        sem_post(&mutex);
+        if (strcmp(receivedPlanet.name, "END") == 0) {
+            mq_unlink(QUEUE_NAME);
+            pthread_exit(NULL);
+        }
+    }
+#endif
 }
