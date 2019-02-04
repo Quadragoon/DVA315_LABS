@@ -49,6 +49,7 @@ int main(int ac, char ** argv) {
         fgets(textString, 20, stdin);
         textString[strlen(textString) - 1] = '\0';
         strcpy(planetType.name, textString);
+        MQwrite(&mailbox, &planetType);
         sem_post(&mutex);
         if (strcmp(textString, "END") == 0)
             pthread_exit(NULL);
@@ -91,7 +92,7 @@ void* readText() {
     while (1) {
         sleep(1);
         sem_wait(&mutex);
-        if (!MQread(&mailbox, &planetPointer))
+        if (!MQread(&mailbox, (void**)&planetPointer))
             printf("Read failed: error %d, %s\n", errno, strerror(errno));
         else {
             printf("%s\n", (char *) receivedPlanet.name);
