@@ -3,7 +3,7 @@
 #include <semaphore.h>
 
 #define MAX_SIZE 1024
-#define QUEUE_NAME "/Mailbox"
+#define QUEUE_NAME "/Mailbox2"
 
 void* helloWorld(int* count);
 void* helloMoon(int* count);
@@ -43,10 +43,13 @@ int main(int ac, char ** argv) {
 #ifdef ASSIGNMENT_B
     char* textString = malloc(sizeof(char)*MAX_SIZE);
     planet_type planetType;
+    int c;
     while(1) {
         printf("Enter name: ");
         sem_wait(&mutex);
-        fgets(textString, 20, stdin);
+        fgets(textString, 21, stdin);
+        if (textString[strlen(textString) - 1] != '\n')
+            while ((c = getchar()) != '\n' && c != EOF) { }
         textString[strlen(textString) - 1] = '\0';
         strcpy(planetType.name, textString);
         MQwrite(&mailbox, &planetType);
@@ -92,10 +95,12 @@ void* readText() {
     while (1) {
         sleep(1);
         sem_wait(&mutex);
-        if (!MQread(&mailbox, (void**)&planetPointer))
-            printf("Read failed: error %d, %s\n", errno, strerror(errno));
+        if (!MQread(&mailbox, (void**)&planetPointer)) {
+            if (errno != 11)
+                printf("Read failed: error %d, %s\n", errno, strerror(errno));
+        }
         else {
-            printf("%s\n", (char *) receivedPlanet.name);
+            printf("Received data, name: %s\n", (char *) receivedPlanet.name);
         }
         sem_post(&mutex);
         if (strcmp(receivedPlanet.name, "END") == 0) {

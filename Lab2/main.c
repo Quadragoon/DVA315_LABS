@@ -10,6 +10,9 @@ typedef int buffer_item;
 #define RAND_DIVISOR 100000000
 #define TRUE 1
 
+//#define MUTEX
+#define SEMAPHORE
+
 pthread_mutex_t mutex;
 
 sem_t full, empty;
@@ -61,9 +64,13 @@ void *producer(void *param) {
         item = count++;
 
         /* acquire the empty lock */
-        //sem_wait(&empty);
+#ifdef SEMAPHORE
+        sem_wait(&empty);
+#endif
         /* acquire the mutex lock */
-        //pthread_mutex_lock(&mutex);
+#ifdef MUTEX
+        pthread_mutex_lock(&mutex);
+#endif
 
         if(insert_item(item)) {
             fprintf(stderr, " Producer %ld report error condition\n", (long) param);
@@ -74,9 +81,13 @@ void *producer(void *param) {
         }
         fflush(stdout);
         /* release the mutex lock */
-        //pthread_mutex_unlock(&mutex);
+#ifdef MUTEX
+        pthread_mutex_unlock(&mutex);
+#endif
         /* signal full */
-        //sem_post(&full);
+#ifdef SEMAPHORE
+        sem_post(&full);
+#endif
     }
 }
 
@@ -89,10 +100,14 @@ void *consumer(void *param) {
         int rNum = rand() / RAND_DIVISOR;
         sleep(rNum);
 
-        /* aquire the full lock */
-        //sem_wait(&full);
-        /* aquire the mutex lock */
-        //pthread_mutex_lock(&mutex);
+        /* acquire the full lock */
+#ifdef SEMAPHORE
+        sem_wait(&full);
+#endif
+        /* acquire the mutex lock */
+#ifdef MUTEX
+        pthread_mutex_lock(&mutex);
+#endif
         if(remove_item(&item)) {
             fprintf(stderr, "Consumer %ld report error condition\n",(long) param);
             fflush(stdout);
@@ -101,9 +116,13 @@ void *consumer(void *param) {
             printf("consumer %ld consumed %d\n", (long) param, item);
         }
         /* release the mutex lock */
-        //pthread_mutex_unlock(&mutex);
+#ifdef MUTEX
+        pthread_mutex_unlock(&mutex);
+#endif
         /* signal empty */
-        //sem_post(&empty);
+#ifdef SEMAPHORE
+        sem_post(&empty);
+#endif
     }
 }
 
@@ -146,7 +165,6 @@ int main(int argc, char *argv[]) {
     int mainSleepTime = 30;//atoi(argv[1]); /* Time in seconds for main to sleep */
     int numProd = 10; //atoi(argv[2]); /* Number of producer threads */
     int numCons = 3; //atoi(argv[3]); /* Number of consumer threads */
-
 
     initializeData();
 
