@@ -10,8 +10,11 @@ typedef int buffer_item;
 #define RAND_DIVISOR 100000000
 #define TRUE 1
 
-//#define MUTEX
+#define MUTEX
 #define SEMAPHORE
+
+#define NUM_PRODUCERS 10
+#define NUM_CONSUMERS 3
 
 pthread_mutex_t mutex;
 
@@ -33,14 +36,18 @@ int insert_item(buffer_item item);
 
 void initializeData() {
 
+#ifdef MUTEX
     /* Create the mutex lock */
     pthread_mutex_init(&mutex, NULL);
+#endif
 
+#ifdef SEMAPHORE
     /* Create the full semaphore and initialize to 0 */
     ret = sem_init(&full, 0, 0);
 
     /* Create the empty semaphore and initialize to BUFFER_SIZE */
     ret = sem_init(&empty, 0, BUFFER_SIZE);
+#endif
 
     /* Get the default attributes */
     pthread_attr_init(&attr);
@@ -53,7 +60,7 @@ void initializeData() {
 void *producer(void *param) {
     buffer_item item;
 
-    printf("Producer created!");
+    printf("Producer created!\n");
     fflush(stdout);
     while(TRUE) {
         /* sleep for a random period of time */
@@ -63,12 +70,12 @@ void *producer(void *param) {
         /* generate a random number */
         item = count++;
 
-        /* acquire the empty lock */
 #ifdef SEMAPHORE
+        /* acquire the empty lock */
         sem_wait(&empty);
 #endif
-        /* acquire the mutex lock */
 #ifdef MUTEX
+        /* acquire the mutex lock */
         pthread_mutex_lock(&mutex);
 #endif
 
@@ -80,12 +87,13 @@ void *producer(void *param) {
             printf("producer %ld produced %d\n", (long) param, item);
         }
         fflush(stdout);
-        /* release the mutex lock */
+
 #ifdef MUTEX
+        /* release the mutex lock */
         pthread_mutex_unlock(&mutex);
 #endif
-        /* signal full */
 #ifdef SEMAPHORE
+        /* signal full */
         sem_post(&full);
 #endif
     }
@@ -100,14 +108,15 @@ void *consumer(void *param) {
         int rNum = rand() / RAND_DIVISOR;
         sleep(rNum);
 
-        /* acquire the full lock */
 #ifdef SEMAPHORE
+        /* acquire the full lock */
         sem_wait(&full);
 #endif
-        /* acquire the mutex lock */
 #ifdef MUTEX
+        /* acquire the mutex lock */
         pthread_mutex_lock(&mutex);
 #endif
+
         if(remove_item(&item)) {
             fprintf(stderr, "Consumer %ld report error condition\n",(long) param);
             fflush(stdout);
@@ -115,12 +124,13 @@ void *consumer(void *param) {
         else {
             printf("consumer %ld consumed %d\n", (long) param, item);
         }
-        /* release the mutex lock */
+
 #ifdef MUTEX
+        /* release the mutex lock */
         pthread_mutex_unlock(&mutex);
 #endif
-        /* signal empty */
 #ifdef SEMAPHORE
+        /* signal empty */
         sem_post(&empty);
 #endif
     }
@@ -163,8 +173,8 @@ int main(int argc, char *argv[]) {
     //}
 
     int mainSleepTime = 30;//atoi(argv[1]); /* Time in seconds for main to sleep */
-    int numProd = 10; //atoi(argv[2]); /* Number of producer threads */
-    int numCons = 3; //atoi(argv[3]); /* Number of consumer threads */
+    int numProd = NUM_PRODUCERS; //atoi(argv[2]); /* Number of producer threads */
+    int numCons = NUM_CONSUMERS; //atoi(argv[3]); /* Number of consumer threads */
 
     initializeData();
 
