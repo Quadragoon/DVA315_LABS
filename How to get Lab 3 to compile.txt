@@ -1,0 +1,24 @@
+Getting lab 3 to compile is pretty tricky since GTK requires a lot of packages and includes and stuff.
+Here's a short explanation of how I got it to work for me.
+
+First of all, it turns out there are many ways to find which packages and directories are required for
+a certain library to compile properly. Some of these ways are, handily enough, available within CMake.
+
+The first line we need to add is:
+  find_package(PkgConfig REQUIRED)
+This line initializes a package manager within CMake which we will then use to find required files for GTK.
+
+That package manager is used in the very next line to add:
+  pkg_check_modules(GTK REQUIRED gtk+-3.0)
+This line does A LOT of work for us. Basically, we tell CMake to find out which packages and directories
+are needed (as the keyword REQUIRED suggests) to compile our project with the library "gtk+-3.0". CMake
+then creates variables for us, named along the lines of "<package name>_INCLUDE_DIRS" where <package name>
+is the "GTK" we specified at the start of the command.
+
+These variables are immediately put to use by the following two commands:
+  target_include_directories(<executable name> PUBLIC ${GTK_INCLUDE_DIRS})
+  target_link_libraries(<executable name> ${GTK_LIBRARIES})
+Where <executable name> is the name of the compile target you should already have, created by
+add_executable somewhere within your CMakeLists.txt file.
+
+And... that's it! That's all you need. Probably. I got mine to compile this way and hopefully you will too!
