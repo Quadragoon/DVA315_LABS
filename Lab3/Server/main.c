@@ -17,48 +17,10 @@ GtkWidget* darea;
 planet_type* planetList = NULL; // first node of a single-linked list of planets
 int planetCount = 0; // number of planets currently alive and simulating
 
-gboolean addMorePlanets = FALSE; // used to toggle if random planets will be generated
-
 mqd_t mainBox;
-pthread_t planetThreads[100];
+pthread_t planetThreads[1];
 
 struct sigevent* signalEvent;
-
-// Appends a planet with the supplied attributes to the end of the linked planet list.
-// Returns a pointer to the new planet on success and NULL on failure.
-void* AddPlanet(const char* name, int life, double mass, int pid,
-                double posX, double posY, double velX, double velY)
-{
-    planet_type* newPlanet;
-    newPlanet = malloc(sizeof(planet_type));
-
-    if (newPlanet == NULL)
-        return NULL;
-
-    strcpy(newPlanet->name, name);
-    newPlanet->pid = pid;
-    newPlanet->life = life;
-    newPlanet->mass = mass;
-    newPlanet->sx = posX;
-    newPlanet->sy = posY;
-    newPlanet->vx = velX;
-    newPlanet->vy = velY;
-    newPlanet->next = NULL;
-
-    if (planetList == NULL) {
-        planetList = newPlanet;
-        planetCount++;
-        return newPlanet;
-    } else {
-        planet_type* lastPlanet = planetList;
-        while (lastPlanet->next != NULL)
-            lastPlanet = lastPlanet->next;
-
-        lastPlanet->next = newPlanet;
-        planetCount++;
-        return newPlanet;
-    }
-}
 
 // Appends the supplied planet to the end of the linked planet list.
 // Returns a pointer to the new planet on success and NULL on failure.
@@ -108,41 +70,6 @@ planet_type* RemovePlanet(planet_type* planetToRemove)
     return FALSE;
 }
 
-// Generates a planet in a random position outside the screen border and sets it to fly
-// across the screen.
-// Returns nothing. It's a void function.
-void AddRandomPlanet()
-{
-    double xpos;
-    double ypos;
-    double xvel = ((random() % 1000) - 500) / 100.0;
-    double yvel = ((random() % 1000) - 500) / 100.0;
-
-    int side = random() % 4;
-    if (side == 0) {
-        xpos = random() % 80000;
-        xpos /= 100;
-        ypos = -15;
-        yvel = yvel < 0 ? -yvel : yvel;
-    } else if (side == 1) {
-        xpos = 815;
-        ypos = random() % 60000;
-        ypos /= 100;
-        xvel = xvel > 0 ? -xvel : xvel;
-    } else if (side == 2) {
-        xpos = random() % 80000;
-        xpos /= 100;
-        ypos = 615;
-        yvel = yvel > 0 ? -yvel : yvel;
-    } else if (side == 3) {
-        xpos = -15;
-        ypos = random() % 60000;
-        ypos /= 100;
-        xvel = xvel < 0 ? -xvel : xvel;
-    }
-    AddPlanet("TEST", 100, 0, getpid(), xpos, ypos, xvel, yvel);
-}
-
 void PlanetUpdateThreadFunc(planet_type* planet)
 {
     while (1)
@@ -183,14 +110,10 @@ void MessageReceived()
         MQread(&mainBox, (void**) &newPlanet);
 
         if (strcmp(newPlanet->name, "CONNECT") == 0) {
-            /*mqd_t clientBox;
-            char* clientBoxName = malloc(sizeof(char) * 64);
-            snprintf(clientBoxName, 64, "/MQ_Planets_%d", newPlanet->pid);
-            MQconnect(&clientBox, clientBoxName);*/
+
         } else {
             AddExistingPlanet(newPlanet);
             pthread_create(planetThreads, NULL, (void*) PlanetUpdateThreadFunc, newPlanet);
-            //PlanetUpdateThreadFunc(newPlanet);
         }
 
         mq_getattr(mainBox, &attributes);
@@ -209,19 +132,7 @@ static gboolean on_draw_event(GtkWidget* widget, cairo_t* cr, gpointer user_data
 // Keypress event for gdk, triggered every time a key is pressed in the server window.
 gboolean on_key_press(GtkWidget* widget, GdkEventKey* eventKey, gpointer userData)
 {
-    if (eventKey->keyval == GDK_KEY_j) {
-        AddPlanet("TEST", 1, 5, 0, 10, 10, 8, 0);
-        return TRUE;
-    } else if (eventKey->keyval == GDK_KEY_b) {
-        AddPlanet("TEST", 1, 5, 0, 10, 100, 7, 0);
-        return TRUE;
-    } else if (eventKey->keyval == GDK_KEY_c) {
-        AddPlanet("TEST", 1, 5, 0, 10, 200, 6, 0);
-        return TRUE;
-    } else if (eventKey->keyval == GDK_KEY_l) {
-        addMorePlanets = !addMorePlanets;
-        return TRUE;
-    } else if (eventKey->keyval == GDK_KEY_Escape) {
+    if (eventKey->keyval == GDK_KEY_Escape) {
         mq_unlink("/MQ_Planets_MAIN");
         gtk_main_quit();
         return TRUE;
@@ -261,30 +172,6 @@ static void do_drawing(cairo_t* cr)
 GtkTickCallback
 on_frame_tick(GtkWidget* widget, GdkFrameClock* frame_clock, gpointer user_data) //Tick handler to update the frame
 {
-    if (addMorePlanets) {
-        for (int i = 0; i < 10; i++) {
-            AddRandomPlanet();
-        }
-    }
-
-    planet_type* nextPlanet = planetList;
-    while (nextPlanet != NULL) {
-        if (nextPlanet->mass != 0){
-            nextPlanet = nextPlanet->next;
-            continue;
-        }
-        nextPlanet->sx += nextPlanet->vx;
-        nextPlanet->sy += nextPlanet->vy;
-        if (nextPlanet->sx < -10 || nextPlanet->sx > 810 || nextPlanet->sy < -10 || nextPlanet->sy > 610) {
-            nextPlanet->life--;
-            if (nextPlanet->life <= 0) {
-                nextPlanet = RemovePlanet(nextPlanet);
-                continue;
-            }
-        }
-        nextPlanet = nextPlanet->next;
-    }
-
     gdk_frame_clock_begin_updating(frame_clock); //Update the frame clock
     gtk_widget_queue_draw(darea); //Queue a draw event
     gdk_frame_clock_end_updating(frame_clock); //Stop updating frame clock
@@ -293,9 +180,9 @@ on_frame_tick(GtkWidget* widget, GdkFrameClock* frame_clock, gpointer user_data)
 int main(int argc, char* argv[]) //Main function
 {
     //----------------------------------------Variable declarations should be placed below---------------------------------
-    int test;
-    test = 4;
-    test++;
+
+
+
     //----------------------------------------Variable declarations should be placed Above---------------------------------
 
     //GUI stuff, don't touch unless you know what you are doing, or if you talked to me

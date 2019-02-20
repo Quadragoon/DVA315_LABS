@@ -51,7 +51,7 @@ int main()
         printf("ERROR: Planet malloc failed!\n");
         return -1;
     }
-
+/*
     AssignPlanetVariables("CONNECT", 0, 0, 0, 0, 0, 0);
 
     if (MQwrite(&serverMailbox, planet))
@@ -62,23 +62,43 @@ int main()
     }
 
     sleep(1);
+*/
+    char* planetSign;
+    planetSign = malloc(sizeof(char)*10);
 
-    int i;
-    /*for (i = 0; i<5; i++) {
-        planet->name[i] = 'a' + random() % 25;
-    }
+    do {
+        strcpy(planet->name, "BLANK");
 
-    planet->name[i] = '\0';
-    AssignPlanetVariables(planet->name, 100000000, 300, 300, 0, 0, 20);
+        //get input then create planet based on input
+        if (fgets(planetSign, 10, stdin) == NULL) {
+            printf("ERROR: input error");
+        }
 
-    if (MQwrite(&serverMailbox, planet))
-        printf("Write success!\n");
-    else {
-        printf("Write failed!\n");
-        return 0;
-    }
-    sleep(1);
+        /*
+        int i;
+        for (i = 0; i<5; i++) {
+            planet->name[i] = 'a' + random() % 25;
+        }
+        */
+        if (strcmp(planetSign, "s\n") == 0) {
+            strcpy(planet->name, "Sun");
+            AssignPlanetVariables(planet->name, 100000000, 300, 300, 0, 0, 20);
+        } else if (strcmp(planetSign, "p\n") == 0) {
+            strcpy(planet->name, "Planet");
+            AssignPlanetVariables(planet->name, 1000, 200, 300, 0, 0.008, 20);
+        }
+        if (strcmp(planet->name, "BLANK") != 0) {
+            if (MQwrite(&serverMailbox, planet))
+                printf("Write success!\n");
+            else {
+                printf("Write failed!\n");
+                return 0;
+            }
+        }
+        //sleep(1);
+    }while(strcmp(planetSign, "x\n") != 0);
 
+    /*
     for (int n = 0; n < 4; n++) {
         for (i = 0; i < 5; i++) {
             planet->name[i] = 'a' + random() % 25;
@@ -94,50 +114,18 @@ int main()
         }
 
         sleep(1);
-    }*/
-
-    for (i = 0; i < 5; i++) {
-        planet->name[i] = 'a' + random() % 25;
     }
-
-    planet->name[i] = '\0';
-    AssignPlanetVariables(planet->name, 1000000, 485, 300, 0, 0.001, 20);
-
-    if (MQwrite(&serverMailbox, planet))
-        printf("Write success!\n");
-    else {
-        printf("Write failed!\n");
-        return 0;
-    }
-    usleep(10);
-    for (i = 0; i < 5; i++) {
-        planet->name[i] = 'a' + random() % 25;
-    }
-
-    planet->name[i] = '\0';
-    AssignPlanetVariables(planet->name, 1000000, 515, 300, 0, -0.001, 20);
-
-    if (MQwrite(&serverMailbox, planet))
-        printf("Write success!\n");
-    else {
-        printf("Write failed!\n");
-        return 0;
-    }
-    sleep(1);
-
-    sleep(10);
-
+*/
     mq_close(mailbox);
 
     return 0;
 }
 
-void MessageReceived()
-{
-mq_notify(mailbox, signalEvent);
+void MessageReceived() {
+    mq_notify(mailbox, signalEvent);
 
-printf("Signal success!\n");
-MQread(&mailbox, (void**)&planet);
-printf("Planet %s has tragically passed away...\n", planet->name);
-pthread_exit(NULL);
+    printf("Signal success!\n");
+    MQread(&mailbox, (void **) &planet);
+    printf("Planet %s has tragically passed away...\n", planet->name);
+    pthread_exit(NULL);
 }
