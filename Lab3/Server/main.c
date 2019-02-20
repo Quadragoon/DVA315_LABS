@@ -6,7 +6,7 @@
 
 #define TWO_PI 6.283
 #define MSLEEP(time) usleep(time*1000)
-#define CAPITAL_G 0.0000000000667259
+#define CAPITAL_G 6.67259e-11
 #define DELTA_T 100
 
 static void do_drawing(cairo_t*);
@@ -70,6 +70,8 @@ planet_type* RemovePlanet(planet_type* planetToRemove)
     return FALSE;
 }
 
+// Run one of these for each planet that needs to simulate gravity (all of 'em)
+// Returns nothing. It's a void function.
 void PlanetUpdateThreadFunc(planet_type* planet)
 {
     while (1)
@@ -89,18 +91,16 @@ void PlanetUpdateThreadFunc(planet_type* planet)
             }
             currentPlanet = currentPlanet->next;
         }
-        double newVelX = planet->vx + (xaccel * DELTA_T);
-        double newVelY = planet->vy + (yaccel * DELTA_T);
-        planet->vx = newVelX;
-        planet->vy = newVelY;
-        double newPosX = planet->sx + (planet->vx * DELTA_T);
-        double newPosY = planet->sy + (planet->vy * DELTA_T);
-        planet->sx = newPosX;
-        planet->sy = newPosY;
+        planet->vx += xaccel * DELTA_T;
+        planet->vy += yaccel * DELTA_T;
+        planet->sx += planet->vx * DELTA_T;
+        planet->sy += planet->vy * DELTA_T;
         MSLEEP(10);
     }
 }
 
+// Asynchronous function being called when a message arrives on an empty mailbox.
+// Can't really return something by its nature as an asynchronous function call.
 void MessageReceived()
 {
     struct mq_attr attributes;
