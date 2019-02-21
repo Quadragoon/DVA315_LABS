@@ -9,7 +9,7 @@
 #define CAPITAL_G 6.67259e-11
 #define DELTA_T 100
 
-static void do_drawing(cairo_t*);
+static void do_drawing(cairo_t*, GtkWidget* widget);
 
 GtkWidget* window;
 GtkWidget* darea;
@@ -21,6 +21,7 @@ mqd_t mainBox;
 pthread_t planetThreads[1];
 
 struct sigevent* signalEvent;
+
 
 // Appends the supplied planet to the end of the linked planet list.
 // Returns a pointer to the new planet on success and NULL on failure.
@@ -125,7 +126,7 @@ void MessageReceived()
 // Draw event for cairo, will be triggered each time a draw event is executed
 static gboolean on_draw_event(GtkWidget* widget, cairo_t* cr, gpointer user_data)
 {
-    do_drawing(cr); //Launch the actual draw method
+    do_drawing(cr,widget); //Launch the actual draw method
     return FALSE; //Return something
 }
 
@@ -142,7 +143,7 @@ gboolean on_key_press(GtkWidget* widget, GdkEventKey* eventKey, gpointer userDat
 }
 
 //Do the drawing against the cairo surface area cr
-static void do_drawing(cairo_t* cr)
+static void do_drawing(cairo_t* cr, GtkWidget* widget)
 {
     //Printing planets should reasonably be done something like this:
     // --------- for all planets in list:
@@ -151,10 +152,37 @@ static void do_drawing(cairo_t* cr)
     //------------------------------------------Insert planet drawings below-------------------------------------------
     planet_type* nextPlanet;
     nextPlanet = planetList;
+    GdkRGBA colour;
+    GtkStyleContext *context;
+
+    double i = 0;
+
+    context = gtk_widget_get_style_context (widget);
+    cairo_set_source_rgb (cr, 0.0, 0.0, 0.0);
+    cairo_paint_with_alpha (cr, 0.7); //background for the galaxy second input is value between 0 (light) and 1 dark
 
     while (nextPlanet != NULL) {
         double planetRadius = pow(((nextPlanet->mass*3.0)/TWO_PI*2.0), 1.0/3.0) * 0.1;
         cairo_arc(cr, nextPlanet->sx, nextPlanet->sy, planetRadius, 0, TWO_PI);
+
+        //gtk_style_context_get_color (context, gtk_style_context_get_state (context), &colour);
+        if(strcmp(nextPlanet->name, "Sun") == 0) {
+            colour.alpha = 1;
+            colour.green = 1;
+            colour.red = 1;
+            colour.blue = 0;
+        } else{
+            colour.alpha = 1;
+            colour.green = 1-0.1*i;
+            colour.red = 0+0.05;
+            colour.blue = 0.1*i;
+            i++;
+            if(i > 10)
+            i = i-11;
+        }
+
+        gdk_cairo_set_source_rgba (cr, &colour);
+
         cairo_fill(cr);
         nextPlanet = nextPlanet->next;
     }
