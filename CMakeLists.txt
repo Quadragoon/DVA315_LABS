@@ -5,12 +5,9 @@ set(CMAKE_C_STANDARD 99)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
 
-add_executable(Lab1 Lab1/main.c Lab1/wrapper.c)
-add_executable(Lab2 Lab2/main.c)
+
 add_executable(Lab3_Server Lab3/Server/main.c Lab3/wrapper.c)
 add_executable(Lab3_Client Lab3/Client/main.c Lab3/wrapper.c)
-
-target_link_libraries(Lab1 rt)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK REQUIRED gtk+-3.0)
