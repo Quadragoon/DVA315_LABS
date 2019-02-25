@@ -3,10 +3,13 @@
 #include <signal.h>
 
 mqd_t mailbox;
+mqd_t serverMailbox;
 planet_type* planet;
 struct sigevent* signalEvent;
 
 void MessageReceived();
+
+int sendManyPlanets = 0;
 
 void AssignPlanetVariables(const char* name, double mass, double sx, double sy, double vx, double vy, int life)
 {
@@ -19,13 +22,27 @@ void AssignPlanetVariables(const char* name, double mass, double sx, double sy, 
     planet->vx = vx;
     planet->vy = vy;
     planet->life = life;
+    planet->next = NULL;
+}
+
+void SendManyPlanets()
+{
+    while (sendManyPlanets) {
+        usleep(100000);
+        strcpy(planet->name, "Random");
+        AssignPlanetVariables(planet->name, (long)1e5%random(), random() % 800, random() % 600, 0, 0, 200000);
+        if (MQwrite(&serverMailbox, planet))
+            printf("Write success!\n");
+        else {
+            printf("Write failed!\n");
+        }
+    }
 }
 
 int main()
 {
     srandom(time(NULL));
 
-    mqd_t serverMailbox;
     while (!MQconnect(&serverMailbox, "/MQ_Planets_MAIN")) {
         printf("Connect failed. Retrying...\n");
         sleep(1);
@@ -65,10 +82,16 @@ int main()
 
         if (strcmp(planetSign, "s\n") == 0) {
             strcpy(planet->name, "Sun");
-            AssignPlanetVariables(planet->name, 1e8, 300, 300, 0, 0, 20);
+            AssignPlanetVariables(planet->name, 1e8, 300, 300, 0, 0, 200000);
         } else if (strcmp(planetSign, "p\n") == 0) {
             strcpy(planet->name, "Planet");
-            AssignPlanetVariables(planet->name, 1000, 200, 300, 0, 0.008, 20);
+            AssignPlanetVariables(planet->name, 1000, 200, 300, 0, 0.008, 200000);
+        } else if (strcmp(planetSign, "r\n") == 0) {
+            sendManyPlanets = !sendManyPlanets;
+            if (sendManyPlanets) {
+                pthread_t manyPlanetsThread;
+                pthread_create(&manyPlanetsThread, NULL, (void*)SendManyPlanets, NULL);
+            }
         }
         if (strcmp(planet->name, "BLANK") != 0) {
             if (MQwrite(&serverMailbox, planet))
@@ -86,10 +109,14 @@ int main()
 }
 
 void MessageReceived() {
-    mq_notify(mailbox, signalEvent);
+    struct mq_attr mqAttr;
+    do {
+        printf("Signal success!\n");
+        MQread(&mailbox, (void**) &planet);
+        printf("Planet %s has tragically passed away...\n", planet->name);
+        mq_getattr(mailbox, &mqAttr);
+    } while (mqAttr.mq_curmsgs > 0);
 
-    printf("Signal success!\n");
-    MQread(&mailbox, (void **) &planet);
-    printf("Planet %s has tragically passed away...\n", planet->name);
+    mq_notify(mailbox, signalEvent);
     pthread_exit(NULL);
 }
