@@ -20,9 +20,13 @@
 #define sched_MQ 3
 
 #define FILEPATH "./Lab4/taskset.txt"
+#define PRIO_HIGH 1
+#define PRIO_MED 2
+#define PRIO_LOW 4
+#define PRIO_MINIMAL 8
 
 #define QUEUE_SIZE 10
-int sched_type = sched_SJF;
+int sched_type = sched_MQ;
 int finished = 0;
 int context_switch_program_exit = 0;
 int context_switch = 0;
@@ -46,7 +50,6 @@ task* ready_queue = NULL;
 task* waiting_queue = NULL;
 task* exec_task;
 task* idle_task;
-
 
 task tasks[QUEUE_SIZE]; //Queue
 int activeTasks = 0;
@@ -273,6 +276,55 @@ task* scheduler_n()
         }
         if (sched_type == sched_MQ)        //Here is where you implement your MQ scheduling algorithm,
         {
+            int containsHighPriority = 0;
+            int containsMediumPriority = 0;
+            int containsLowPriority = 0;
+
+            task* cursor = ready_queue;
+            while (cursor != NULL) {
+                if (cursor->priority == PRIO_HIGH)
+                    containsHighPriority = 1;
+                else if (cursor->priority >= PRIO_MED && cursor->priority < PRIO_LOW)
+                    containsMediumPriority = 1;
+                else if (cursor->priority >= PRIO_LOW && cursor->priority < PRIO_MINIMAL)
+                    containsLowPriority = 1;
+                cursor = cursor->next;
+            }
+
+            if (containsHighPriority)
+            {
+                while (ready_queue->priority != PRIO_HIGH)
+                {
+                    task data = *ready_queue;
+                    ready_queue = pop(ready_queue);
+                    push(ready_queue, data);
+                }
+                ready_queue->priority++;
+                return ready_queue;
+            }
+            else if (containsMediumPriority)
+            {
+                while (!(ready_queue->priority >= PRIO_MED && ready_queue->priority < PRIO_LOW))
+                {
+                    task data = *ready_queue;
+                    ready_queue = pop(ready_queue);
+                    push(ready_queue, data);
+                }
+                ready_queue->priority++;
+                return ready_queue;
+            }
+            else if (containsLowPriority)
+            {
+                while (!(ready_queue->priority >= PRIO_LOW && ready_queue->priority < PRIO_MINIMAL))
+                {
+                    task data = *ready_queue;
+                    ready_queue = pop(ready_queue);
+                    push(ready_queue, data);
+                }
+                ready_queue->priority++;
+                return ready_queue;
+            }
+
             return ready_queue;
         }
     } else                        //If the ready queue is empty, the operating system must have something to do, therefore we return an idle task
@@ -326,6 +378,6 @@ int main(int argc, char** argv)
         task_to_be_run = scheduler_n();        //Fetch the task to be run
         dispatch_n(task_to_be_run);            //Dispatch the task to be run
         OS_cycles++;                        //Increment OS clock
-        usleep(1000000);                    //Sleep so we dont get overflown with output
+        usleep(500000);                    //Sleep so we dont get overflown with output
     }
 }
