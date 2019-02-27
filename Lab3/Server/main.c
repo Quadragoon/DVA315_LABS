@@ -8,6 +8,7 @@
 #define MSLEEP(time) usleep(time*1000)
 #define CAPITAL_G 6.67259e-11
 #define DELTA_T 100
+#define RADTODEG(degrees) ((degrees) * M_PI / 180)
 
 static void do_drawing(cairo_t*, GtkWidget* widget);
 
@@ -210,13 +211,11 @@ static void do_drawing(cairo_t* cr, GtkWidget* widget)
     // --------- cairo_fill(cr)
     //------------------------------------------Insert planet drawings below-------------------------------------------
     GdkRGBA colour;
-    GtkStyleContext* context;
 
     double i = 0;
 
-    context = gtk_widget_get_style_context(widget);
     cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-    cairo_paint_with_alpha(cr, 0.7); //background for the galaxy second input is value between 0 (light) and 1 dark
+    cairo_paint_with_alpha(cr, 0.3); //background for the galaxy second input is value between 0 (light) and 1 dark
 
     pthread_mutex_lock(&mutex);
     planet_type* nextPlanet;
@@ -232,13 +231,11 @@ static void do_drawing(cairo_t* cr, GtkWidget* widget)
             colour.red = 1;
             colour.blue = 0;
         } else {
+            i = RADTODEG(nextPlanet->pid % 360);
             colour.alpha = 1;
-            colour.green = 1 - 0.1 * i;
-            colour.red = 0 + 0.05;
-            colour.blue = 0.1 * i;
-            i++;
-            if (i > 10)
-                i = i - 11;
+            colour.green = fabs(cos(i));
+            colour.red = fabs(tan(i));
+            colour.blue = fabs(sin(i));
         }
 
         gdk_cairo_set_source_rgba(cr, &colour);

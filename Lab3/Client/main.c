@@ -87,6 +87,7 @@ int main()
             strcpy(planet->name, "Planet");
             AssignPlanetVariables(planet->name, 1000, 200, 300, 0, 0.008, 200000);
         } else if (strcmp(planetSign, "r\n") == 0) {
+            strcpy(planet->name, "BLANK");
             sendManyPlanets = !sendManyPlanets;
             if (sendManyPlanets) {
                 pthread_t manyPlanetsThread;
