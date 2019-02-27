@@ -24,6 +24,7 @@
 #define PRIO_MED 2
 #define PRIO_LOW 4
 #define PRIO_MINIMAL 8
+#define GREATEST(a, b) (a > b ? a : b)
 
 #define QUEUE_SIZE 10
 int sched_type = sched_MQ;
@@ -266,11 +267,7 @@ task* scheduler_n()
             }
 
             while (ready_queue != shortestJob)
-            {
-                task data = *ready_queue;
-                ready_queue = pop(ready_queue);
-                push(ready_queue, data);
-            }
+                ready_queue = first_to_last(ready_queue);
 
             return ready_queue;
         }
@@ -285,42 +282,30 @@ task* scheduler_n()
                 if (cursor->priority == PRIO_HIGH)
                     containsHighPriority = 1;
                 else if (cursor->priority >= PRIO_MED && cursor->priority < PRIO_LOW)
-                    containsMediumPriority = 1;
+                    containsMediumPriority = GREATEST(cursor->priority, containsMediumPriority);
                 else if (cursor->priority >= PRIO_LOW && cursor->priority < PRIO_MINIMAL)
-                    containsLowPriority = 1;
+                    containsLowPriority = GREATEST(cursor->priority, containsLowPriority);
                 cursor = cursor->next;
             }
 
             if (containsHighPriority)
             {
                 while (ready_queue->priority != PRIO_HIGH)
-                {
-                    task data = *ready_queue;
-                    ready_queue = pop(ready_queue);
-                    push(ready_queue, data);
-                }
+                    ready_queue = first_to_last(ready_queue);
                 ready_queue->priority++;
                 return ready_queue;
             }
             else if (containsMediumPriority)
             {
-                while (!(ready_queue->priority >= PRIO_MED && ready_queue->priority < PRIO_LOW))
-                {
-                    task data = *ready_queue;
-                    ready_queue = pop(ready_queue);
-                    push(ready_queue, data);
-                }
+                while (ready_queue->priority != containsMediumPriority)
+                    ready_queue = first_to_last(ready_queue);
                 ready_queue->priority++;
                 return ready_queue;
             }
             else if (containsLowPriority)
             {
-                while (!(ready_queue->priority >= PRIO_LOW && ready_queue->priority < PRIO_MINIMAL))
-                {
-                    task data = *ready_queue;
-                    ready_queue = pop(ready_queue);
-                    push(ready_queue, data);
-                }
+                while (ready_queue->priority != containsLowPriority)
+                    ready_queue = first_to_last(ready_queue);
                 ready_queue->priority++;
                 return ready_queue;
             }
