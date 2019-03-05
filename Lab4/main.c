@@ -19,7 +19,7 @@
 #define sched_SJF 2
 #define sched_MQ 3
 
-#define FILEPATH "./Lab4/taskset.txt"
+#define FILEPATH "./taskset.txt"
 #define PRIO_HIGH 1
 #define PRIO_MED 2
 #define PRIO_LOW 4
