@@ -9,13 +9,15 @@
 
 #define EVICTSTRATEGY EVICTSTRAT_LFU
 
+#define PAGENUM 8
+int pageFreq[PAGENUM];
+
 typedef struct
 {
     int page;       // page stored in this memory frame
     int time;       // Access time stamp of page stored in this memory frame
     int free;       // Indicates if frame is free or not
     int addedAtTime;     // Time stamp of when the page was stored into memory
-    int frequency;  // Counter of how many times page has been accessed since last page fault
     int nextUseAt;
     // Add own data if needed for FIFO, OPT, LFU, Own algorithm
 } frameType;
@@ -28,6 +30,9 @@ void initialize(int* no_of_frames, int* no_of_references, int* refs, frameType* 
     int i;
     FILE* fp;
     char fileName[50] = "ref.txt";
+
+    for (int i = 0; i < PAGENUM; i++)
+        pageFreq[i] = 0;
 
     fp = fopen(fileName, "r");
 
@@ -103,7 +108,7 @@ int findPageToEvict(frameType frames[], int n)
 #endif
 #if EVICTSTRATEGY == EVICTSTRAT_FIFO
     // FIFO eviction strategy -- The page that has been in memory the longest will be evicted
-    int i
+    int i;
     int minimum = frames[0].addedAtTime;
     int pos = 0;
 
@@ -118,12 +123,12 @@ int findPageToEvict(frameType frames[], int n)
 #if EVICTSTRATEGY == EVICTSTRAT_LFU
     // LFU eviction strategy -- The page used least will be evicted
     int i;
-    int minimum = frames[0].frequency;
+    int minimum = pageFreq[frames[0].page];
     int pos = 0;
 
     for (i = 0; i < n; ++i) {
-        if (frames[i].frequency < minimum) {               // Find the page position with minimum time stamp among all frames
-            minimum = frames[i].frequency;
+        if (pageFreq[frames[i].page] < minimum) {               // Find the page position with minimum time stamp among all frames
+            minimum = pageFreq[frames[i].page];
             pos = i;
         }
     }
@@ -140,13 +145,13 @@ int findPageToEvict(frameType frames[], int n)
 #endif
 #if EVICTSTRATEGY == EVICTSTRAT_OPT
     // OPT eviction strategy - We're LOOKING INTO THE FUTURE to optimize paging
-    int i, minimum = frames[0].nextUseAt, pos = 0;
-    if (minimum == 0)
+    int i, maximum = frames[0].nextUseAt, pos = 0;
+    if (maximum == 0)
         return pos;
 
     for (i = 1; i < n; ++i) {
-        if (frames[i].nextUseAt < minimum) {               // Find the page position with minimum time stamp among all frames
-            minimum = frames[i].nextUseAt;
+        if (frames[i].nextUseAt > maximum) {               // Find the page position with minimum time stamp among all frames
+            maximum = frames[i].nextUseAt;
             pos = i;
         }
     }
@@ -164,7 +169,8 @@ int findNextUse(int refs[], int i, int refNum)
             return i_local;
         i_local++;
     }
-    return 0; // Page has no next reference, we can use it if we'd like
+
+    return 21470000; // Page has no next reference, we can use it if we'd like
 }
 
 //---- Main loops ref string, for each ref 1) check if ref is in memory, 2) if not, check if there is free frame, 3) if not, find a page to evict --
@@ -184,7 +190,7 @@ int main()
         for (j = 0; j < no_of_frames; ++j) {         // Check if refs[i] is in memory
             if (frames[j].page == refs[i]) {         // Accessed ref is in memory
                 counter++;
-                frames[j].frequency++;
+                pageFreq[frames[j].page]++;
                 frames[j].time = counter;           // Update the time stamp for this frame
                 page_fault_flag = no_free_mem_flag = 1; // Indicate no page fault (no page fault and no free memory frame needed)
                 frames[j].nextUseAt = findNextUse(refs, i, no_of_references);
@@ -202,8 +208,8 @@ int main()
                     frames[j].page = refs[i];        // Update memory frame with referenced page
                     frames[j].time = counter;       // Update the time stamp for this frame
                     frames[j].addedAtTime = counter; // Update when this frame was placed in memory
-                    frames[j].frequency = 0;
                     frames[j].nextUseAt = findNextUse(refs, i, no_of_references);
+                    pageFreq[frames[j].page]++;
 
                     frames[j].free = 0;             // This frame is no longer free
                     no_free_mem_flag = 1;           // Indicate that we do not need to replace since free frame was found
@@ -221,8 +227,8 @@ int main()
             frames[pos].page = refs[i];             // Update memory frame at position pos with referenced page
             frames[pos].time = counter;             // Update the time stamp for this frame
             frames[pos].addedAtTime = counter; // Update when this frame was placed in memory
-            frames[pos].frequency = 0;
             frames[pos].nextUseAt = findNextUse(refs, i, no_of_references);
+            pageFreq[frames[pos].page]++;
         }
         printResultOfReference(no_of_frames, frames, page_fault_flag, no_free_mem_flag, pos, free,
                                refs[i]); // Print result of referencing ref[i]
